@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.canvas.Canvas?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.text.Font?>
+
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="904.0" prefWidth="1079.0" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.tolmic.graphicsbuilder.AppController">
+   <children>
+      <TextField fx:id="formula" layoutX="286.0" layoutY="68.0" prefHeight="65.0" prefWidth="598.0">
+         <font>
+            <Font size="30.0" />
+         </font></TextField>
+      <Label layoutX="127.0" layoutY="76.0" prefHeight="48.0" prefWidth="159.0" text="Формула y(x) = ">
+         <font>
+            <Font size="21.0" />
+         </font></Label>
+      <Button fx:id="minus" layoutX="106.0" layoutY="221.0" mnemonicParsing="false" onAction="#onDecreaseScale" prefHeight="36.0" prefWidth="25.0" text="-">
+         <font>
+            <Font size="24.0" />
+         </font></Button>
+      <Button fx:id="plus" layoutX="106.0" layoutY="167.0" mnemonicParsing="false" onAction="#onIncreaseScale" prefHeight="36.0" prefWidth="25.0" text="+">
+         <font>
+            <Font size="20.0" />
+         </font></Button>
+      <Canvas fx:id="graphics" height="625.0" layoutX="176.0" layoutY="157.0" width="725.0" />
+      <Button fx:id="changeGridMode" layoutX="176.0" layoutY="826.0" mnemonicParsing="false" onAction="#onChangeGridMode" prefHeight="44.0" prefWidth="193.0" text="Отключить сетку">
+         <font>
+            <Font size="17.0" />
+         </font>
+      </Button>
+   </children>
+</AnchorPane>
