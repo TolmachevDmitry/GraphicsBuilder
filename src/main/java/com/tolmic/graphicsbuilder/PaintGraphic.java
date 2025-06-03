@@ -13,17 +13,17 @@ public class PaintGraphic {
 
     @FunctionalInterface
     private interface DrawLine {
-        public void drawLine(double x, double thickness);
+        public void draw(double x, double thickness);
     }
 
     @FunctionalInterface
     private interface DrawLabel {
-        public void drawLabel(double number, double secondCoordinate);        
+        public void draw(double number, double secondCoordinate);        
     }
 
     @FunctionalInterface
-    private interface MaxBorder {
-        public double getMaxBorder();
+    private interface CheckBorder {
+        public boolean check(double value);
     }
 
     private GraphicsContext gc;
@@ -68,23 +68,12 @@ public class PaintGraphic {
         paint();
     }
 
-    private void paint() {
-        clear();
+    public double getWidth() {
+        return width;
+    }
 
-        double Ox = OX - AXLE_THICKNESS / 2;
-        double Oy = OY - AXLE_THICKNESS / 2;
-
-        drawCoordinateAxes(Ox, Oy);
-
-        drawVerticalLine(Ox, AXLE_THICKNESS);
-        drawHorizontalLine(Oy, AXLE_THICKNESS);
-
-        if (isNeedGrid) {
-            drawGrid(Ox, Oy);
-        }
-
-        drawGraphic();
-        drawLabels(Ox, Oy);
+    public double getHeight() {
+        return height;
     }
 
     private void clear() {
@@ -96,83 +85,37 @@ public class PaintGraphic {
         drawHorizontalLine(Oy, AXLE_THICKNESS);
     }
 
-    private void drawGrid(double Ox, double Oy) {
-        drawGridAxisX(Ox, Oy);
-        drawGridAxisY(Ox, Oy);
+    private int countLineNumberMain(double p0) {
+        double numb = Math.abs(p0) / SIZE_UNIT;
+        return (int) (p0 >= 0 ? -numb : numb + 1);
     }
 
-    private void drawGridAxisX(double Ox, double Oy) {
-        drawSymmetricalLines(Ox, (p, th) -> drawVerticalLine(p, th), this::getWidth);
+    // number of first ordinary line from axis in screen
+    private int countLineNumber(double p0) {
+        return countLineNumberMain(p0);
     }
 
-    private void drawGridAxisY(double Ox, double Oy) {
-        drawSymmetricalLines(Oy, (p, th) -> drawHorizontalLine(p, th), this::getHeight);
-    }
-
-    private void drawSymmetricalLines(double p0, DrawLine lineMethod, MaxBorder maxBorder) {
-        int n = countLineNumber(p0);
-        double p = countStartCoordinate(p0, n);
-
-        while (p < maxBorder.getMaxBorder()) {
-            if (n != 0) {
-                lineMethod.drawLine(p, defindThinkness(n));
-            }
-            
-            p += SIZE_UNIT;
-            n += 1;
-        }
+    private double countStartCoordinate(double p0, int n) {
+        return p0 + n * SIZE_UNIT;
     }
 
     private double defindThinkness(int n) {
         return n % NUMBER_SHARES == 0 ? REFERENCE_LINES_THICKNESS : ORDINARY_LINES_THICKNESS;
     }
 
-    private void drawLabels(double Ox, double Oy) {
-        drawLabelsAxisX(Ox, Oy);
-        drawLabelsAxisY(Ox, Oy);
-    }
+    // drawing lines is done from the smaller to the larger coordinate of specific axis
+    private void drawSymmetricalLines(double p0, DrawLine lineMethod, CheckBorder checkBorder) {
+        int n = countLineNumber(p0);
+        double p = countStartCoordinate(p0, n);
 
-    private void drawLabelsAxisX(double Ox, double Oy) {
-        drawSymmetricalLabels(Ox, (v, p) -> drawLabel(v, p, Oy), this::getWidth);
-    }
-
-    private void drawLabelsAxisY(double Ox, double Oy) {
-        drawSymmetricalLabels(Oy, (v, p) -> drawLabel(v, Ox, p), this::getHeight);
-    }
-
-    private void drawSymmetricalLabels(double p0, DrawLabel labelMethod, MaxBorder maxBorder) {
-        int n = countControlLineNumber(p0);
-        double p = countStartControlCoordinate(p0, n);
-
-        double coordinateIncrement = SIZE_UNIT * NUMBER_SHARES;
-
-        while (p < maxBorder.getMaxBorder()) {
+        while (checkBorder.check(p)) {
             if (n != 0) {
-                labelMethod.drawLabel(n * NUMBER_SHARES * D_SCALE, p);
+                lineMethod.draw(p, defindThinkness(n));
             }
-
-            p += coordinateIncrement;
+            
+            p += SIZE_UNIT;
             n += 1;
         }
-    }
-
-    private int countControlLineNumber(double p0) {
-        int n = countLineNumber(p0);
-        return (int) (n / NUMBER_SHARES + (p0 < 0 && n % NUMBER_SHARES != 0 ? 1 : 0));
-    }
-
-    private double countStartControlCoordinate(double p0, int n) {
-        return p0 + n * SIZE_UNIT * NUMBER_SHARES;
-    }
-
-    // number of first ordinary line from axis in screen
-    private int countLineNumber(double p0) {
-        double p0M = Math.abs(p0);
-        return (int) (p0 >= 0 ? -(p0M / SIZE_UNIT) : (p0M / SIZE_UNIT) + 1);
-    }
-
-    private double countStartCoordinate(double p0, int n) {
-        return p0 + n * SIZE_UNIT;
     }
 
     private void drawVerticalLine(double coordinate, double thickness) {
@@ -183,26 +126,23 @@ public class PaintGraphic {
         gc.fillRect(0, coordinate, width, thickness);
     }
 
-    public void addFunctionGraphic(double[] x, double[] y) {
+    private void drawGridAxisX(double Ox, double Oy) {
+        DrawLine drawVerticalLine = (p, th) -> drawVerticalLine(p, th); 
+        CheckBorder checkBorder = (v) -> v <= getWidth();
 
-        if (x.length != y.length) {
-            new NonEqualsSize("Sizes of x and y must be equals.");
-        }
-
-        this.x = x;
-        this.y = y;
-
-        paint();
+        drawSymmetricalLines(Ox, drawVerticalLine, checkBorder);
     }
 
-    private void defindLabelWidth(int n) {
-        double w = 30;
-        
-        for (int i = n; i < 6 && scale / i < 10; i *= 10) {
-            w += 5;
-        }
+    private void drawGridAxisY(double Ox, double Oy) {
+        DrawLine drawHorizLine = (p, th) -> drawHorizontalLine(p, th); 
+        CheckBorder checkBorder = (v) -> v <= getHeight();
 
-        labelWidth = w;
+        drawSymmetricalLines(Oy, drawHorizLine, checkBorder);
+    }
+
+    private void drawGrid(double Ox, double Oy) {
+        drawGridAxisX(Ox, Oy);
+        drawGridAxisY(Ox, Oy);
     }
 
     private double specifyWidth(double value) {
@@ -226,21 +166,16 @@ public class PaintGraphic {
         return t;
     }
 
-    public void increaseScale() {
-        scale += D_SCALE;
-        
-        defindLabelWidth(1);
-        paint();
+    private double getCorrectX(double x) {
+        return (x < 0) ? 0 : 
+                        (x + labelWidth > width) ? width - labelWidth : x;
     }
 
-    public void decreaseScale() {
-        scale -= D_SCALE;
-
-        defindLabelWidth(1);
-        paint();
+    private double getCorrectY(double y) {
+        return (y < 0) ? 0 :
+                        (y + LABEL_HEIGHT > height) ? height - LABEL_HEIGHT : y;
     }
 
-    // подумать
     private void drawLabel(double value, double x0, double y0) {
         double width = specifyWidth(value);
 
@@ -260,28 +195,102 @@ public class PaintGraphic {
         gc.setFill(Color.BLACK);
     }
 
-    private double getCorrectX(double x) {
-        double t = x;
-
-        if (x < 0) {
-            t = 0;
-        } else if (x + labelWidth > width) {
-            t = width - labelWidth;
-        }
-
-        return t;
+    private int countControlLineNumber(double p0) {
+        int n = countLineNumberMain(p0);
+        return (int) (n / NUMBER_SHARES + (p0 < 0 && n % NUMBER_SHARES != 0 ? 1 : 0));
     }
 
-    private double getCorrectY(double y) {
-        double t = y;
+    private double countStartControlCoordinate(double p0, int n) {
+        return p0 + n * SIZE_UNIT * NUMBER_SHARES;
+    }
 
-        if (y < 0) {
-            t = 0;
-        } else if (y + LABEL_HEIGHT > height) {
-            t = height - LABEL_HEIGHT;
+    private void drawSymmetricalLabels(double p0, int inv, DrawLabel labelMethod, CheckBorder checkBorder) {
+        int n = countControlLineNumber(p0);
+        double p = countStartControlCoordinate(p0, n);
+
+        double coordinateIncrement = SIZE_UNIT * NUMBER_SHARES;
+
+        while (checkBorder.check(p)) {
+            if (n != 0) {
+                labelMethod.draw(inv * n * NUMBER_SHARES * D_SCALE, p);
+            }
+
+            p += coordinateIncrement;
+            n += 1;
+        }
+    }
+
+    private void drawLabelsAxisX(double Ox, double Oy) {
+        DrawLabel drawHorizLabel = (v, p) -> drawLabel(v, p, Oy);
+        CheckBorder checkHorizBorder = (v) -> v <= getWidth();
+
+        drawSymmetricalLabels(Ox, 1, drawHorizLabel, checkHorizBorder);
+    }
+
+    private void drawLabelsAxisY(double Ox, double Oy) {
+        DrawLabel drawVertLabel = (v, p) -> drawLabel(v, Ox, p);
+        CheckBorder checkVertBorder = (v) -> v <= getHeight();
+
+        drawSymmetricalLabels(Oy, -1, drawVertLabel, checkVertBorder);
+    }
+
+    private void drawLabels(double Ox, double Oy) {
+        drawLabelsAxisX(Ox, Oy);
+        drawLabelsAxisY(Ox, Oy);
+    }
+
+    public void addFunctionGraphic(double[] x, double[] y) {
+        if (x.length != y.length) {
+            new NonEqualsSize("Sizes of x and y must be equals.");
         }
 
-        return t;
+        this.x = x;
+        this.y = y;
+
+        paint();
+    }
+
+    private void defindLabelWidth(int n) {
+        double w = 30;
+        
+        for (int i = n; i < 6 && scale / i < 10; i *= 10) {
+            w += 5;
+        }
+
+        labelWidth = w;
+    }
+
+    private void paint() {
+        clear();
+
+        double Ox = OX - AXLE_THICKNESS / 2;
+        double Oy = OY - AXLE_THICKNESS / 2;
+
+        drawCoordinateAxes(Ox, Oy);
+
+        drawVerticalLine(Ox, AXLE_THICKNESS);
+        drawHorizontalLine(Oy, AXLE_THICKNESS);
+
+        if (isNeedGrid) {
+            drawGrid(Ox, Oy);
+        }
+
+        drawGraphic();
+        drawLabels(Ox, Oy);
+    }
+
+    public void increaseScale() {
+        scale += D_SCALE;
+        
+        defindLabelWidth(1);
+        paint();
+    }
+
+    public void decreaseScale() {
+        scale -= D_SCALE;
+
+        defindLabelWidth(1);
+        paint();
     }
 
     private void drawGraphic() {
@@ -311,14 +320,6 @@ public class PaintGraphic {
     public void setStartPointForDrag(double x, double y) {
         x1 = x;
         y1 = y;
-    }
-
-    public double getWidth() {
-        return width;
-    }
-
-    public double getHeight() {
-        return height;
     }
 
 }
